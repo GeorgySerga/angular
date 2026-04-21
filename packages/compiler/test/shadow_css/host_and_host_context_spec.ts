@@ -215,6 +215,10 @@ describe('ShadowCss, :host and :host-context', () => {
       expect(shim(':host-context(.x) > .y {}', 'contenta', 'a-host')).toEqualCss(
         '.x[a-host] > .y[contenta], .x [a-host] > .y[contenta] {}',
       );
+
+      expect(shim('.foo :host-context(.bar) {}', 'contenta', 'a-host')).toEqualCss(
+        '.foo .bar[a-host], .foo .bar [a-host] {}',
+      );
     });
 
     it('should handle attribute selector', () => {

@@ -590,7 +590,9 @@ export class ShadowCss {
   }
 
   private _convertColonHostContextInSelectorPart(cssText: string): string {
-    return cssText.replace(_cssColonHostContextReGlobal, (selectorText, pseudoPrefix) => {
+    return cssText.replace(_cssColonHostContextReGlobal, (match, pseudoPrefix) => {
+      let selectorText = match;
+
       // We have captured a selector that contains a `:host-context` rule.
 
       // For backward compatibility `:host-context` may contain a comma separated list of selectors.
@@ -599,8 +601,6 @@ export class ShadowCss {
       // (Normally `contextSelectorGroups` will only contain a single array of context selectors.)
       const contextSelectorGroups: string[][] = [[]];
 
-      // There may be more than `:host-context` in this selector so `selectorText` could look like:
-      // `:host-context(.one):host-context(.two)`.
       // Loop until every :host-context in the compound selector has been processed.
       let startIndex = selectorText.indexOf(_polyfillHostContext);
       while (startIndex !== -1) {
@@ -658,10 +658,32 @@ export class ShadowCss {
       // The context selectors now must be combined with each other to capture all the possible
       // selectors that `:host-context` can match. See `_combineHostContextSelectors()` for more
       // info about how this is done.
-      return contextSelectorGroups
-        .map((contextSelectors) =>
-          _combineHostContextSelectors(contextSelectors, selectorText, pseudoPrefix),
-        )
+      const combinedResult = contextSelectorGroups.flatMap((contextSelectors) =>
+        _combineHostContextSelectors(contextSelectors, selectorText, pseudoPrefix),
+      );
+
+      // Extract the prefix before the match to apply it to generated selectors.
+      const startIndexMatch = cssText.indexOf(match);
+      const prefix = cssText.substring(0, startIndexMatch);
+
+      // Distribute the prefix to all generated alternatives.
+      return combinedResult
+        .map((generatedSelector, index) => {
+          const isLast = index === combinedResult.length - 1;
+          // Preserve trailing space for the last element (before `{`).
+          const processed = isLast
+            ? generatedSelector.replace(/^\s+/, '')
+            : generatedSelector.trim();
+
+          if (index === 0) {
+            // The first element keeps the prefix from the original string.
+            return processed;
+          }
+
+          // For others, we prepend the clean prefix (removing `:host` markers).
+          const cleanPrefix = prefix.replace(_polyfillHostNoCombinator, '').trim();
+          return cleanPrefix ? cleanPrefix + ' ' + processed : processed;
+        })
         .join(', ');
     });
   }
@@ -1346,14 +1368,14 @@ function _combineHostContextSelectors(
   contextSelectors: string[],
   otherSelectors: string,
   pseudoPrefix = '',
-): string {
+): string[] {
   const hostMarker = _polyfillHostNoCombinator;
   _polyfillHostRe.lastIndex = 0; // reset the regex to ensure we get an accurate test
   const otherSelectorsHasHost = _polyfillHostRe.test(otherSelectors);
 
   // If there are no context selectors then just output a host marker
   if (contextSelectors.length === 0) {
-    return hostMarker + otherSelectors;
+    return [hostMarker + otherSelectors];
   }
 
   const combined: string[] = [contextSelectors.pop() || ''];
@@ -1372,13 +1394,14 @@ function _combineHostContextSelectors(
   }
   // Finally connect the selector to the `hostMarker`s: either acting directly on the host
   // (A<hostMarker>) or as an ancestor (A <hostMarker>).
-  return combined
-    .map((s) =>
-      otherSelectorsHasHost
-        ? `${pseudoPrefix}${s}${otherSelectors}`
-        : `${pseudoPrefix}${s}${hostMarker}${otherSelectors}, ${pseudoPrefix}${s} ${hostMarker}${otherSelectors}`,
-    )
-    .join(',');
+  return combined.flatMap((s) =>
+    otherSelectorsHasHost
+      ? [`${pseudoPrefix}${s}${otherSelectors}`]
+      : [
+          `${pseudoPrefix}${s}${hostMarker}${otherSelectors}`,
+          `${pseudoPrefix}${s} ${hostMarker}${otherSelectors}`,
+        ],
+  );
 }
 
 /**
