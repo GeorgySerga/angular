@@ -466,10 +466,19 @@ export class ShadowCss {
     cssText = this._insertPolyfillHostInCssText(cssText);
     cssText = this._convertColonHost(cssText);
 
-    cssText = processRules(cssText, (rule) => {
-      const selector = this._convertColonHostContext(rule.selector);
-      return new CssRule(selector, rule.content);
-    });
+    // Recursively processes rules to convert :host-context in selectors.
+    // Recursion is needed to handle rules inside scoped at-rules like @media.
+    const convertHostContext = (css: string): string => {
+      return processRules(css, (rule) => {
+        const selector = this._convertColonHostContext(rule.selector);
+        let content = rule.content;
+        if (scopedAtRuleIdentifiers.some((atRule) => rule.selector.startsWith(atRule))) {
+          content = convertHostContext(rule.content);
+        }
+        return new CssRule(selector, content);
+      });
+    };
+    cssText = convertHostContext(cssText);
 
     cssText = this._convertShadowDOMSelectors(cssText);
     if (scopeSelector) {

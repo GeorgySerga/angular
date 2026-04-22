@@ -23,6 +23,17 @@ describe('ShadowCss, at-rules', () => {
         '@media screen and (max-width:800px, max-height:100%) {div[contenta] {font-size:50px;}}';
       expect(shim(css, 'contenta')).toEqualCss(expected);
     });
+
+    it('should handle media rules with :host-context', () => {
+      const css = `@media (min-width: 6) {
+        :host-context(.layout-wide) .work-order-card-status {
+          justify-content: flex-start;
+        }
+      }`;
+      expect(shim(css, 'contenta', 'hosta')).toEqualCss(
+        '@media (min-width:6) { .layout-wide[hosta] .work-order-card-status[contenta], .layout-wide [hosta] .work-order-card-status[contenta] { justify-content:flex-start;}}',
+      );
+    });
   });
 
   describe('@page', () => {
