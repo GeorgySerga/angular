@@ -19,6 +19,13 @@ describe('ShadowCss', () => {
     expect(shim(css, 'contenta')).toEqualCss(expected);
   });
 
+  it('should handle multiple rules in the same string with :host-context', () => {
+    const input = `:host-context(.cm-gm2) .cfc-message-success ::ng-deep [mat-flat-button].cm-button.mat-primary{color:red}:host-context(:where(body[data-cm-color-scheme=dark][data-cm-color-scheme=dark])) :host-context(.cm-gm2) .cfc-message-success ::ng-deep [mat-flat-button].cm-button.mat-primary{color:blue}`;
+    const expected =
+      '.cm-gm2[hosta] .cfc-message-success[contenta] [mat-flat-button].cm-button.mat-primary, .cm-gm2 [hosta] .cfc-message-success[contenta] [mat-flat-button].cm-button.mat-primary{color:red}:where(body[data-cm-color-scheme=dark][data-cm-color-scheme=dark]).cm-gm2[hosta] .cfc-message-success[contenta] [mat-flat-button].cm-button.mat-primary, :where(body[data-cm-color-scheme=dark][data-cm-color-scheme=dark]).cm-gm2 [hosta] .cfc-message-success[contenta] [mat-flat-button].cm-button.mat-primary, :where(body[data-cm-color-scheme=dark][data-cm-color-scheme=dark]) .cm-gm2[hosta] .cfc-message-success[contenta] [mat-flat-button].cm-button.mat-primary, :where(body[data-cm-color-scheme=dark][data-cm-color-scheme=dark]) .cm-gm2 [hosta] .cfc-message-success[contenta] [mat-flat-button].cm-button.mat-primary, .cm-gm2 :where(body[data-cm-color-scheme=dark][data-cm-color-scheme=dark])[hosta] .cfc-message-success[contenta] [mat-flat-button].cm-button.mat-primary, .cm-gm2 :where(body[data-cm-color-scheme=dark][data-cm-color-scheme=dark]) [hosta] .cfc-message-success[contenta] [mat-flat-button].cm-button.mat-primary{color:blue}';
+    expect(shim(input, 'contenta', 'hosta')).toEqualCss(expected);
+  });
+
   it('should handle invalid css', () => {
     const css = 'one {color: red;}garbage';
     const expected = 'one[contenta] {color:red;}garbage';

@@ -465,7 +465,12 @@ export class ShadowCss {
     // replace :host and :host-context with -shadowcsshost and -shadowcsshostcontext respectively
     cssText = this._insertPolyfillHostInCssText(cssText);
     cssText = this._convertColonHost(cssText);
-    cssText = this._convertColonHostContext(cssText);
+
+    cssText = processRules(cssText, (rule) => {
+      const selector = this._convertColonHostContext(rule.selector);
+      return new CssRule(selector, rule.content);
+    });
+
     cssText = this._convertShadowDOMSelectors(cssText);
     if (scopeSelector) {
       cssText = this._scopeKeyframesRelatedCss(cssText, scopeSelector);
