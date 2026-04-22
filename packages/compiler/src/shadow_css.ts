@@ -686,7 +686,7 @@ export class ShadowCss {
           }
 
           // For others, we prepend the clean prefix (removing `:host` markers).
-          const cleanPrefix = prefix.replace(_polyfillHostNoCombinator, '').trim();
+          const cleanPrefix = prefix.replace(_polyfillHostNoCombinatorRe, '').trim();
           return cleanPrefix ? cleanPrefix + ' ' + processed : processed;
         })
         .join(', ');

@@ -331,6 +331,28 @@ describe('ShadowCss, :host and :host-context', () => {
       );
     });
 
+    it('should handle :host followed by space and :host-context', () => {
+      // The following tests handle combinations of :host and :host-context with spaces.
+      // This behavior is preserved for backward compatibility with older parsing logic,
+      // even though these are not valid Shadow DOM selectors (descendants of host having :host-context).
+      // It is left as is to avoid breaking existing usages.
+      // The basic algorithm is sequential:
+      // 1. :host is processed first, becoming -shadowcsshost-no-combinator[tag].
+      // 2. :host-context is processed second. It expands into two cases:
+      //    a) Context on host: prefix + context + hostMarker.
+      //    b) Context as ancestor: cleanPrefix + context + space + hostMarker.
+      // `cleanPrefix` removes the whole host marker part, leaving only tag name if present.
+
+      expect(shim(':host :host-context(.one) {}', 'contenta', 'a-host')).toEqualCss(
+        '[a-host] .one[a-host], .one [a-host] {}',
+      );
+      expect(
+        shim(':host(cfc-info-text) :host-context(.cfc-info-text-line) {}', 'contenta', 'a-host'),
+      ).toEqualCss(
+        'cfc-info-text[a-host] .cfc-info-text-line[a-host], .cfc-info-text-line [a-host] {}',
+      );
+    });
+
     it('should handle selectors on different elements', () => {
       expect(shim(':host-context(div) :host(.x) > .y {}', 'contenta', 'a-host')).toEqualCss(
         'div .x[a-host] > .y[contenta] {}',
